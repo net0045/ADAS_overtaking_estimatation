@@ -3,6 +3,7 @@ import numpy as np
 from ultralytics import YOLO
 import time
 from helpers.GUIManager import GUIManager
+from helpers.ObjectTracker import ObjectTracker
 
 class VideoProcessor:
     def __init__(self, video_path, model_name="yolov8n.pt"):
@@ -10,6 +11,7 @@ class VideoProcessor:
         self.yolo_model = YOLO(model_name)
         self.allowed_objects = [2, 3, 5, 7]  # car, motorcycle, bus, truck
         self.gui_manager = GUIManager()
+        self.object_tracker = ObjectTracker()
 
     def process_frame(self, frame, score_thresh=0.3, device='cpu'):
         model = self.yolo_model
@@ -20,6 +22,7 @@ class VideoProcessor:
             verbose=False
         )
 
+        frame_detections = []
         for r in results:
             boxes = r.boxes
             for box in boxes:
@@ -28,10 +31,23 @@ class VideoProcessor:
                     # Extract bounding box coordinates
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     conf = box.conf[0]
-                    # Draw bounding box and label on the frame
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    label = f"{model.names[class_id]}: {conf:.2f}"
-                    cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    frame_detections.append((class_id, (x1, y1, x2, y2), conf))
+        
+        # Update tracked objects
+        tracked_objects = self.object_tracker.update(frame_detections)
+
+        # Draw bounding boxes around tracked objects
+        for obj in tracked_objects:
+            ox1, oy1, ox2, oy2 = obj.bbox
+            
+            # TODO: Tady volat odhad vzdálenosti
+            
+
+            label = f"ID {obj.object_id} {self.yolo_model.names[obj.class_id]} {obj.confidence:.2f}"
+            cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), (255, 0, 0), 2)
+            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        return frame
 
         return frame
 

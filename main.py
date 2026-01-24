@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from pathlib import Path
-from helpers.VideoProcessor import VideoProcessor
+from VideoProcessor import VideoProcessor
 
 BASE_DIR = Path(__file__).resolve().parent
 videopath = BASE_DIR / "assets" / "driving_adas.mp4"
