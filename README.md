@@ -7,7 +7,7 @@
 ## 🇸🇪 Project Overview
 Developed as a high-fidelity ADAS (Advanced Driver Assistance System) proof-of-concept. The goal is to assist drivers in making safe overtaking maneuvers on two-lane roads by analyzing oncoming traffic and estimating the "Safe-to-Pass" window.
 
-In Swedish automotive engineering (Volvo/Scania style), safety is not a feature—it is the foundation. This project focuses on **low-latency detection** and **deterministic risk assessment**.
+This project focuses on **low-latency detection** and **deterministic risk assessment**.
 
 ## 🚀 Core Features (MVP Roadmap)
 * **Object Detection:** Real-time vehicle detection using YOLOv8 (Inference optimized for edge cases).
