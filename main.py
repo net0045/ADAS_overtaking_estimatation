@@ -4,7 +4,7 @@ from pathlib import Path
 from VideoProcessor import VideoProcessor
 
 BASE_DIR = Path(__file__).resolve().parent
-videopath = BASE_DIR / "assets" / "driving_clip.mp4"
+videopath = BASE_DIR / "assets" / "overtaking_5.MOV"
 
 
 def main():

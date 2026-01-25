@@ -57,7 +57,7 @@ class TrackedObject:
 
         return inter_area / union_area
 
-    def compute_distance(self, focal_length = 1000, camera_height = 1.2, horizon_y = 540):
+    def compute_distance(self, focal_length = 400, camera_height = 1.2, horizon_y = 540):
         y_bottom = self.bbox[3] # y2 of the bounding box
         delta_y = y_bottom - horizon_y
 

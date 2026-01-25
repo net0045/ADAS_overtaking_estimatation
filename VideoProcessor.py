@@ -13,7 +13,7 @@ class VideoProcessor:
         self.gui_manager = GUIManager()
         self.object_tracker = ObjectTracker()
 
-    def process_frame(self, frame, score_thresh=0.5, device='cpu'):
+    def process_frame(self, frame, score_thresh=0.45, device='cpu'):
         model = self.yolo_model
         results = model.predict(
             frame,
