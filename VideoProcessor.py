@@ -17,6 +17,7 @@ class VideoProcessor:
         model = self.yolo_model
         results = model.predict(
             frame,
+            imgsz=320,
             conf=score_thresh,
             device=0 if 'cuda' in str(device) else 'cpu',
             verbose=False
@@ -44,12 +45,12 @@ class VideoProcessor:
             obj.update_metrics()
 
             # Set color based on TTC
-            color = (255, 255, 0)
+            color = (255, 255, 111)
             if obj.ttc is not None:
-                if obj.ttc < 10.0: 
-                    color = (255, 0, 255) 
-                elif obj.ttc > 22.0: 
-                    color = (0, 255, 255)
+                if obj.ttc < 20.0: 
+                    color = (50, 50, 255) # car is closing in and TTC < 20s
+                elif obj.ttc > 20.0: 
+                    color = (0, 255, 255) # car is closing in but TTC > 20s
 
             label = f"ID {obj.object_id} Dist: {obj.distance}m V: {round(obj.speed*3.6, 1)}km/h TTC: {obj.ttc}s"
             cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), color, 2)
@@ -87,6 +88,7 @@ class VideoProcessor:
             # Vizualization
             cv2.putText(processed_frame, f"FPS: {int(fps)}", (20, 40), 
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.line(frame, (0, 540), (frame.shape[1], 540), (255, 255, 255), 1)
             
             self.gui_manager.display_window(processed_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'): 
