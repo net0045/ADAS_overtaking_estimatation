@@ -13,7 +13,7 @@ class VideoProcessor:
         self.gui_manager = GUIManager()
         self.object_tracker = ObjectTracker()
 
-    def process_frame(self, frame, score_thresh=0.3, device='cpu'):
+    def process_frame(self, frame, score_thresh=0.5, device='cpu'):
         model = self.yolo_model
         results = model.predict(
             frame,
@@ -39,13 +39,13 @@ class VideoProcessor:
         # Draw bounding boxes around tracked objects
         for obj in tracked_objects:
             ox1, oy1, ox2, oy2 = obj.bbox
-            
-            # TODO: Tady volat odhad vzdálenosti
-            
 
-            label = f"ID {obj.object_id} {self.yolo_model.names[obj.class_id]} {obj.confidence:.2f}"
-            cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), (255, 0, 0), 2)
-            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            distance = obj.compute_distance()
+            distance = obj.update_distance(distance)
+            label = f"Object {obj.object_id} {distance}m"
+            cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), (125, 255, 0), 2)
+            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
 
         return frame
 
