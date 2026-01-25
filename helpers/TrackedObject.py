@@ -1,15 +1,25 @@
+import time
+
 class TrackedObject:
-    def __init__(self, object_id, class_id, bbox, confidence, alpha=0.2):
+    def __init__(self, object_id, class_id, bbox, confidence, alpha_dist=0.2, alpha_speed=0.1):
         self.object_id = object_id
         self.class_id = class_id
         self.bbox = bbox  # (x1, y1, x2, y2)
         self.confidence = confidence
         self.centroid = self.calculate_centroid()
+
         self.missed_frames = 0
         self.history_boxes = []
         self.distance = None
-        self.alpha = 0.2
+        self.speed = 0
+        self.ttc = None
+        self.closing_in = False
         
+        self.last_timestamp = None
+       
+        self.alpha_dist = alpha_dist
+        self.alpha_speed = alpha_speed
+
 
     def update(self, bbox, confidence):
         self.history_boxes.append(self.bbox)
@@ -17,6 +27,7 @@ class TrackedObject:
         self.confidence = confidence
         self.centroid = self.calculate_centroid()
         self.missed_frames = 0
+        
 
     def calculate_centroid(self):
         x1, y1, x2, y2 = self.bbox
@@ -57,13 +68,50 @@ class TrackedObject:
         # Above 150 meters, is just big assumation
         return round(min(distance, 150.0), 2)
     
-    def update_distance(self, new_distance):
-        # Using ALpha filter to smooth the distance estimation
-        if self.distance is None:
-            self.distance = new_distance
+    def compute_speed(self, new_dist, old_dist, delta_time):
+        if delta_time <= 0 or old_dist is None:
+            return 0.0
+        
+        delta_dist = new_dist - old_dist
+        speed = delta_dist / delta_time
+        return round(speed, 2)
+    
+    def compute_ttc(self, speed, distance):
+        if speed < -0.1:
+            return round(distance / abs(speed), 1)
+        return None
+
+    def _low_pass_filter(self, new_val, old_val, alpha):
+        # Using Alpha filter to smooth the distance estimation
+        if old_val is None:
+            return new_val
         else:
-            self.distance = self.alpha * new_distance + (1 - self.alpha) * self.distance
-        return round(self.distance, 2)
+            return round(alpha * new_val + (1 - alpha) * old_val, 2)
+    
+    
+    def update_metrics(self):
+        now = time.time()
+        if self.last_timestamp is None:
+            self.last_timestamp = now
+            return
+        
+        delta_time = now - self.last_timestamp
+        raw_distance = self.compute_distance()
+        prev_distance = self.distance
+        self.distance = self._low_pass_filter(raw_distance, self.distance, self.alpha_dist)
+
+        if prev_distance is not None and delta_time > 0:
+            raw_speed = self.compute_speed(self.distance, prev_distance, delta_time)
+            self.speed = self._low_pass_filter(raw_speed, self.speed, self.alpha_speed)
+
+        self.ttc = self.compute_ttc(self.speed, self.distance)
+        self.last_timestamp = now
+   
+    
+    
+
+        
+
      
 
 

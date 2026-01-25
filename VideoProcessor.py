@@ -39,17 +39,25 @@ class VideoProcessor:
         # Draw bounding boxes around tracked objects
         for obj in tracked_objects:
             ox1, oy1, ox2, oy2 = obj.bbox
+    
+            # Update distance, speed, and TTC
+            obj.update_metrics()
 
-            distance = obj.compute_distance()
-            distance = obj.update_distance(distance)
-            label = f"Object {obj.object_id} {distance}m"
-            cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), (125, 255, 0), 2)
-            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # Set color based on TTC
+            color = (255, 255, 0)
+            if obj.ttc is not None:
+                if obj.ttc < 10.0: 
+                    color = (255, 0, 255) 
+                elif obj.ttc > 22.0: 
+                    color = (0, 255, 255)
+
+            label = f"ID {obj.object_id} Dist: {obj.distance}m V: {round(obj.speed*3.6, 1)}km/h TTC: {obj.ttc}s"
+            cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), color, 2)
+            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
             
 
         return frame
 
-        return frame
 
     def run_video(self):
         # Open the video file 
