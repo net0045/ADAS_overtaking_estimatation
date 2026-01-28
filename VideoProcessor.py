@@ -10,14 +10,16 @@ class VideoProcessor:
         self.video_path = video_path
         self.yolo_model = YOLO(model_name)
         self.allowed_objects = [2, 3, 5, 7]  # car, motorcycle, bus, truck
-        self.gui_manager = GUIManager()
+        self.gui_manager_video = GUIManager(window_name="ADAS Overtaking Estimation", width=1280, height=720)
+        self.gui_manager_calib = GUIManager(window_name="Calibration", width=600, height=400)   
         self.object_tracker = ObjectTracker()
+        self.dt = 1.0 / 30  # assuming 30 FPS video
 
     def process_frame(self, frame, score_thresh=0.45, device='cpu'):
         model = self.yolo_model
         results = model.predict(
             frame,
-            imgsz=320,
+            imgsz=640,
             conf=score_thresh,
             device=0 if 'cuda' in str(device) else 'cpu',
             verbose=False
@@ -37,12 +39,17 @@ class VideoProcessor:
         # Update tracked objects
         tracked_objects = self.object_tracker.update(frame_detections)
 
+        focal_length = self.gui_manager_calib.get_trackbar_value("FocalLength")
+        horizon_y = self.gui_manager_calib.get_trackbar_value("Horizon")
+        cv2.line(frame, (0, horizon_y), (frame.shape[1], horizon_y), (255, 255, 255), 1)
+
         # Draw bounding boxes around tracked objects
         for obj in tracked_objects:
             ox1, oy1, ox2, oy2 = obj.bbox
     
             # Update distance, speed, and TTC
-            obj.update_metrics()
+            raw_distance = obj.compute_distance(focal_length=focal_length, horizon_y=horizon_y)
+            obj.update_metrics(raw_distance, self.dt)
 
             # Set color based on TTC
             color = (255, 255, 111)
@@ -52,47 +59,54 @@ class VideoProcessor:
                 elif obj.ttc > 20.0: 
                     color = (0, 255, 255) # car is closing in but TTC > 20s
 
-            label = f"ID {obj.object_id} Dist: {obj.distance}m V: {round(obj.speed*3.6, 1)}km/h TTC: {obj.ttc}s"
+            label = f"{obj.is_oncoming} Dist: {obj.distance}m V: {round(obj.speed*3.6, 1)}km/h TTC: {obj.ttc}s"
             cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), color, 2)
-            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-            
+            cv2.putText(frame, label, (ox1, oy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
 
         return frame
 
+    @staticmethod
+    def nothing(x): pass
+
+    def create_calibration_window(self):
+        self.gui_manager_calib.create_trackbar("Horizon", 540, 1080, self.nothing)
+        self.gui_manager_calib.create_trackbar("FocalLength", 400, 2000, self.nothing)
 
     def run_video(self):
-        # Open the video file 
         cap = cv2.VideoCapture(self.video_path)
-        if not cap.isOpened():
-            print("Error: Could not open video.")
-            return
+        
+        # FPS of the video for physics calculations
+        video_fps = cap.get(cv2.CAP_PROP_FPS)
+        print(f"Video FPS: {video_fps}")
+        if video_fps == 0: video_fps = 30
+        self.dt = 1.0 / video_fps 
 
-        # Get starttime of the calculation loop
-        start_time = time.time()
+        # For measuring processing FPS
+        prev_time = time.time()
 
         while True:
             ret, frame = cap.read()
-            if not ret:
-                break
-            
-            # Process the frame
+            if not ret: break
+
+            if cv2.getWindowProperty("Calibration", cv2.WND_PROP_VISIBLE) >= 1:
+                self.gui_manager_calib.display_window(np.zeros((100, 600, 3), np.uint8))
+
             processed_frame = self.process_frame(frame)
             
-            # Calculate FPS for real-time display
-            current_time = time.time()
-            delta_time = current_time - start_time
-            start_time = current_time
+            # processing FPS calculation
+            curr_time = time.time()
+            proc_dt = curr_time - prev_time
+            prev_time = curr_time
+            proc_fps = 1 / proc_dt if proc_dt > 0 else 0
 
-            fps = 1 / delta_time if delta_time > 0 else 0
-
-            # Vizualization
-            cv2.putText(processed_frame, f"FPS: {int(fps)}", (20, 40), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            cv2.line(frame, (0, 540), (frame.shape[1], 540), (255, 255, 255), 1)
+            # 
+            cv2.putText(processed_frame, f"Video DT: {round(self.dt, 3)}s", (20, 40), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(processed_frame, f"PC Performance FPS: {int(proc_fps)}", (20, 80), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             
-            self.gui_manager.display_window(processed_frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'): 
-                break
+            self.gui_manager_video.display_window(processed_frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'): break
 
         cap.release()
-        self.gui_manager.close()
+        self.gui_manager_video.close()

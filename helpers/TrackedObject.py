@@ -13,12 +13,15 @@ class TrackedObject:
         self.distance = None
         self.speed = 0
         self.ttc = None
-        self.closing_in = False
+        self.is_oncoming = "UNKNOWN"
         
         self.last_timestamp = None
        
         self.alpha_dist = alpha_dist
         self.alpha_speed = alpha_speed
+
+        self.prev_box_width = bbox[2] - bbox[0]
+        self.width_box_growth = 1.0
 
 
     def update(self, bbox, confidence):
@@ -87,16 +90,30 @@ class TrackedObject:
             return new_val
         else:
             return round(alpha * new_val + (1 - alpha) * old_val, 2)
+        
+    def compute_width_growth(self, actual_width, previous_width):
+        if previous_width == 0:
+            return 1.0  
+        growth = actual_width / previous_width
+        return growth
+
+    
+    def direction_decider(self, gwlt = 0.98, gwht = 1.02):
+        # For now only based on width growth
+        if self.width_box_growth < gwlt:
+            return "FOLLOWING"
+        elif self.width_box_growth > gwht:
+            return "ONCOMING"
+        else:
+            return "STATIONARY"
     
     
-    def update_metrics(self):
-        now = time.time()
-        if self.last_timestamp is None:
-            self.last_timestamp = now
+    def update_metrics(self, raw_distance, delta_time):
+        # For first calculation
+        if self.distance is None:
+            self.distance = raw_distance
             return
         
-        delta_time = now - self.last_timestamp
-        raw_distance = self.compute_distance()
         prev_distance = self.distance
         self.distance = self._low_pass_filter(raw_distance, self.distance, self.alpha_dist)
 
@@ -104,8 +121,15 @@ class TrackedObject:
             raw_speed = self.compute_speed(self.distance, prev_distance, delta_time)
             self.speed = self._low_pass_filter(raw_speed, self.speed, self.alpha_speed)
 
+        prev_box_width = self.prev_box_width
+        actual_box_width = self.bbox[2] - self.bbox[0]
+        raw_box_with_growth = self.compute_width_growth(actual_box_width, prev_box_width)
+        self.width_box_growth = self._low_pass_filter(raw_box_with_growth, self.width_box_growth, 0.3)
+        self.prev_box_width = actual_box_width
+
+        self.is_oncoming = self.direction_decider()
+
         self.ttc = self.compute_ttc(self.speed, self.distance)
-        self.last_timestamp = now
    
     
     
