@@ -2,18 +2,25 @@ import numpy as np
 import cv2
 from pathlib import Path
 from VideoProcessor import VideoProcessor
+from helpers.ADASLauncher import ADASLauncher 
 
-BASE_DIR = Path(__file__).resolve().parent
-videopath = BASE_DIR / "assets" / "overtaking.MOV"
-
+def start_adas(config):
+    print("Launching ADAS Engine with selected config...")
+    
+    videoProcessor = VideoProcessor(config["video_path"]) 
+    videoProcessor.set_initial_config(
+        horizon_y=config["horizon"],
+        fov=config["fov"],
+        yolo_thrs=config["thresh"],
+        yolo_imgsz=config["imgsz"])
+    
+    videoProcessor.run_video()
 
 def main():
-    print("Starting ADAS Overtaking Estimation...")
-    print(f"Processing video file at: {videopath}")
-    videoProcessor = VideoProcessor(videopath)
-    videoProcessor.create_calibration_window()
-    videoProcessor.run_video()
+    print("Starting ADAS Configuration Launcher...")
+    
+    app = ADASLauncher(start_callback=start_adas)
+    app.mainloop()
 
 if __name__ == "__main__":
     main()
-    

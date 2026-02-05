@@ -1,4 +1,6 @@
 import cv2 
+import customtkinter as ctk
+from tkinter import filedialog
 
 class GUIManager:
     def __init__(self, window_name, width=1280, height=720):

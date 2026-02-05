@@ -1,4 +1,5 @@
 import numpy as np
+from helpers.KalmanFilter import KalmanFilter
 
 class TrackedObject:
     def __init__(self, object_id, class_id, bbox, confidence, alpha_dist=0.2, alpha_speed=0.1):
@@ -18,6 +19,9 @@ class TrackedObject:
         self.alpha_speed = alpha_speed
         self.prev_box_width = bbox[2] - bbox[0]
         self.width_box_growth = 1.0
+
+        self.kf_speed = KalmanFilter(Q=0.1, R=10.0, initial_value=0)
+        self.kf_real_speed = KalmanFilter(Q=0.1, R=10.0, initial_value=0)
 
     def update(self, bbox, confidence):
         self.bbox = bbox
@@ -46,11 +50,11 @@ class TrackedObject:
         if old_val is None: return new_val
         return round(alpha * new_val + (1 - alpha) * old_val, 2)
 
-    def direction_decider(self, v_thresh= 1.5, growth_thresh=1.01):
-        if self.real_speed < -v_thresh and self.width_box_growth > growth_thresh:
+    def direction_decider(self, v_thresh=1.5, gr_thr_up=1.02):
+        if self.width_box_growth > gr_thr_up:
             return "ONCOMING"
 
-        if self.real_speed > v_thresh:
+        if self.real_speed > v_thresh and self.width_box_growth <= gr_thr_up:
             return "FOLLOWING"
 
         if abs(self.real_speed) <= v_thresh:
@@ -68,10 +72,10 @@ class TrackedObject:
 
         if delta_time > 0:
             raw_rel_speed = (self.distance - prev_distance) / delta_time
-            self.speed = self._low_pass_filter(raw_rel_speed, self.speed, self.alpha_speed)
+            self.speed = self.kf_speed.update(raw_rel_speed)
             
             raw_real_speed = ego_speed + self.speed
-            self.real_speed = self._low_pass_filter(raw_real_speed, self.real_speed, self.alpha_speed)
+            self.real_speed = self.kf_real_speed.update(raw_real_speed)
 
         actual_width = self.bbox[2] - self.bbox[0]
         raw_growth = actual_width / self.prev_box_width if self.prev_box_width > 0 else 1.0
