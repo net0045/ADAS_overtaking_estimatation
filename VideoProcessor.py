@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import time
+import torch 
 from helpers.GUIManager import GUIManager
 from helpers.ObjectTracker import ObjectTracker
 
@@ -23,10 +24,11 @@ class VideoProcessor:
         self.yolo_thrs = yolo_thrs
         self.yolo_imgsz = yolo_imgsz
 
-    def process_frame(self, frame, device='cpu'):
+    def process_frame(self, frame):
+        chosen_device = 'cuda' if torch.cuda.is_available() else 'cpu'
         results = self.yolo_model.predict(
             frame, imgsz=self.yolo_imgsz, conf=self.yolo_thrs,
-            device=0 if 'cuda' in str(device) else 'cpu', verbose=False
+            device=0 if 'cuda' in str(chosen_device) else 'cpu', verbose=False
         )
 
         frame_detections = []
@@ -45,7 +47,7 @@ class VideoProcessor:
         focal_length = self.focal_length
         cv2.line(frame, (0, self.horizon_y), (frame.shape[1], self.horizon_y), (255, 255, 255), 1)
 
-        self.pov_speed = self.object_tracker.get_speed_median()
+        #self.pov_speed = self.object_tracker.get_speed_median()
 
         for obj in tracked_objects:
             ox1, oy1, ox2, oy2 = obj.bbox
@@ -60,7 +62,7 @@ class VideoProcessor:
                 else: color = (0, 255, 255) 
 
             top_label = f"{obj.status} {class_name}"
-            label = f"Dist: {obj.distance}m V_rel: {round(obj.real_speed*3.6, 1)}km/h"
+            label = f"Dist: {obj.distance}m V: {round((obj.real_speed)*3.6, 1)}km/h"
             ttc_label = f"TTC: {obj.ttc}s"
             cv2.rectangle(frame, (ox1, oy1), (ox2, oy2), color, 2)
             cv2.putText(frame, top_label, (ox1, oy1 - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 111) , 2)
@@ -73,6 +75,7 @@ class VideoProcessor:
     def nothing(x): pass
 
     def run_video(self):
+        
         cap = cv2.VideoCapture(self.video_path)
         video_fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -84,9 +87,11 @@ class VideoProcessor:
         self.dt = 1.0 / video_fps 
         prev_time = time.time()
 
-        while True:
+        while self.gui_manager_video.running:
             ret, frame = cap.read()
             if not ret: break
+
+            self.pov_speed = self.gui_manager_video.get_ego_speed()
 
             if cv2.getWindowProperty("Calibration", cv2.WND_PROP_VISIBLE) >= 1:
                 self.gui_manager_calib.display_window(np.zeros((100, 600, 3), np.uint8))
@@ -101,6 +106,7 @@ class VideoProcessor:
             proc_fps = 1 / proc_dt if proc_dt > 0 else 0
             cv2.putText(final_frame, f"PC Performance FPS: {int(proc_fps)} | Resolution: {width}x{height} | FOCAL_LENGTH: {round(self.focal_length, 2)}", 
                         (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (125, 100, 25), 3)
+           
 
             self.gui_manager_video.display_window(final_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'): break
@@ -110,32 +116,51 @@ class VideoProcessor:
 
     def draw_hud(self, frame, speed_ms, tracked_objects):
         height, width = frame.shape[:2]
-        overlay = frame.copy()
         
-        BG_COLOR = (20, 20, 20)      # Téměř černá
-        ACCENT_COLOR = (155, 255, 25) # Neonově zelená
-        DANGER_COLOR = (50, 50, 255)  # Červená
+        overlay = frame.copy()
+        BG_COLOR = (20, 20, 20)     
+        ACCENT_COLOR = (155, 255, 25) 
+        DANGER_COLOR = (50, 50, 255)  
         
         panel_h = 100
         cv2.rectangle(overlay, (0, height - panel_h), (width, height), BG_COLOR, -1)
         cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
 
-        is_danger = any(obj.status == "ONCOMING" and obj.ttc is not None and obj.ttc < 7.0 
+        # 2. LOGIKA NEBEZPEČÍ
+        # Kontrolujeme, zda je nějaký objekt "ONCOMING" a má nízké TTC
+        is_danger = any(obj.status == "ONCOMING" and obj.ttc is not None and obj.ttc < 10.0 
                         for obj in tracked_objects)
         
         status_text = "OVERTAKING DANGER" if is_danger else "SAFE TO OVERTAKE"
         status_color = DANGER_COLOR if is_danger else ACCENT_COLOR
 
         speed_kh = int(speed_ms * 3.6)
-        cv2.putText(frame, f"{speed_kh}", (width // 2 - 50, height - 45), 
-                    cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 255), 3)
-        cv2.putText(frame, "km/h", (width // 2 + 30, height - 45), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 200), 2)
-
-        cv2.putText(frame, status_text, (width // 2 - 120, height - 10), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, status_color, 2)
+        max_speed = 180
+        bar_w = 400
+        bar_x = (width // 2) - (bar_w // 2)
+        bar_y = height - 40 
         
-        cv2.line(frame, (width // 2 - 150, height - 50), (width // 2 - 300, height - 50), ACCENT_COLOR, 2)
-        cv2.line(frame, (width // 2 + 150, height - 50), (width // 2 + 300, height - 50), ACCENT_COLOR, 2)
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_w, bar_y + 8), (60, 60, 60), -1)
+        
+        fill_w = int((min(speed_kh, max_speed) / max_speed) * bar_w)
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + fill_w, bar_y + 8), ACCENT_COLOR, -1)
+        cv2.putText(frame, f"{speed_kh}", (width // 2 - 40, height - 60), 
+                    cv2.FONT_HERSHEY_DUPLEX, 1.2, (255, 255, 255), 2)
+        cv2.putText(frame, "km/h", (width // 2 + 35, height - 65), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+
+        cv2.putText(frame, status_text, (width // 2 - 110, height - 12), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
+        cv2.polylines(frame, [np.array([
+            [width // 2 - 250, height - 20],
+            [width // 2 - 300, height - 60],
+            [width // 2 - 450, height - 60]
+        ])], False, ACCENT_COLOR, 2)
+        
+        cv2.polylines(frame, [np.array([
+            [width // 2 + 250, height - 20],
+            [width // 2 + 300, height - 60],
+            [width // 2 + 450, height - 60]
+        ])], False, ACCENT_COLOR, 2)
 
         return frame

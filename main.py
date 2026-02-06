@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import torch
 from pathlib import Path
 from VideoProcessor import VideoProcessor
 from helpers.ADASLauncher import ADASLauncher 
@@ -18,6 +19,11 @@ def start_adas(config):
 
 def main():
     print("Starting ADAS Configuration Launcher...")
+    if torch.cuda.is_available():
+        device_name = torch.cuda.get_device_name(0)
+        print(f"CUDA is available! Using: {device_name}")
+    else:
+        print("CUDA not found. Running on CPU")
     
     app = ADASLauncher(start_callback=start_adas)
     app.mainloop()
