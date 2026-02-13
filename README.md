@@ -7,6 +7,14 @@
 ## 📌 Project Disclaimer
 This is an **abstract experimental project** created as a personal deep-dive into Computer Vision (CV) and Object Detection (OD) within the automotive sector. The primary goal is to understand the underlying principles of camera geometry, temporal object tracking, and decision-making logic. It is a proof-of-concept for educational purposes, not a production-ready safety system.
 
+## Showcase videos
+<div align="center">
+  <h3>🎥 Project Demonstration</h3>
+  <video src="https://github.com/user-attachments/assets/8a0c4eb5-ad54-4eda-a705-0e446379aa90" width="100%" controls muted autoplay loop>
+    Configurator launcher
+  </video>
+</div>
+
 ## Project Objectives
 * **Perspective Understanding:** Mapping 2D image coordinates to 3D world distances using monocular camera geometry.
 * **Signal Processing:** Implementing recursive estimation (Kalman filters) to mitigate noise in distance and velocity measurements.
