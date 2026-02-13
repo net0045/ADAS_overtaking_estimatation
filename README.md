@@ -1,37 +1,61 @@
 # ADAS: Overtaking Estimation System (OES)
 
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![YOLOv8](https://img.shields.io/badge/vision-YOLOv8-green.svg)
-![Status](https://img.shields.io/badge/status-MVP_Development-orange.svg)
+![Status](https://img.shields.io/badge/status-Experimental_POC-orange.svg)
 
-## 🇸🇪 Project Overview
-Developed as a high-fidelity ADAS (Advanced Driver Assistance System) proof-of-concept. The goal is to assist drivers in making safe overtaking maneuvers on two-lane roads by analyzing oncoming traffic and estimating the "Safe-to-Pass" window.
+## 📌 Project Disclaimer
+This is an **abstract experimental project** created as a personal deep-dive into Computer Vision (CV) and Object Detection (OD) within the automotive sector. The primary goal is to understand the underlying principles of camera geometry, temporal object tracking, and decision-making logic. It is a proof-of-concept for educational purposes, not a production-ready safety system.
 
-This project focuses on **low-latency detection** and **deterministic risk assessment**.
+## Project Objectives
+* **Perspective Understanding:** Mapping 2D image coordinates to 3D world distances using monocular camera geometry.
+* **Signal Processing:** Implementing recursive estimation (Kalman filters) to mitigate noise in distance and velocity measurements.
+* **Motion Analysis:** Classifying object behavior through trajectory analysis rather than simple bounding box changes.
 
-## 🚀 Core Features (MVP Roadmap)
-* **Object Detection:** Real-time vehicle detection using YOLOv8 (Inference optimized for edge cases).
-* **Distance Estimation:** Monocular distance estimation using camera geometry and Inverse Perspective Mapping (IPM).
-* **Relative Velocity Calculation:** Tracking objects over time to estimate closing speeds of oncoming traffic.
-* **Overtaking Logic:** A decision-making engine that calculates the required time-to-collision (TTC) versus the overtaking window.
-* **Visual Debugger:** Overlay showing safety zones (Green/Red) directly on the HUD/Video feed.
+## Tech Stack
+* **Computer Vision:** `ultralytics` (YOLOv8), `OpenCV`
+* **GPU Acceleration:** `PyTorch` with **CUDA 11.8** support
+* **Filtering & Math:** `NumPy`, Custom Kalman Filter implementation
+* **GUI & UI:** `CustomTkinter` (Unified launcher and real-time dashboard)
+* **Performance:** Optimized inference with **FP16 precision**
 
-## 🛠 Tech Stack
-- **Language:** Python 3.10+
-- **Computer Vision:** OpenCV, Ultralytics YOLOv8
-- **Math/Physics:** NumPy (Coordinate transformations, Kinematics)
-- **Version Control:** Git (Feature-branch workflow)
+## Core Features (Implemented)
+* **Dynamic Calibration:** Real-time adjustment of FOV and Horizon-line to align the geometric model with the video perspective.
+    
+* **Trajectory-based Classification:** A robust decider that uses centroid motion vectors ($dx, dy$) to distinguish between:
+    * **Oncoming:** Vehicles with high lateral shift and negative relative velocity.
+    * **Following:** Vehicles moving within the ego-lane trajectory.
+    * **Stationary:** Roadside objects/signs filtered by absolute velocity consistency.
+* **Hybrid Telemetry Filtering:** Multi-stage filtering using Low-pass and **Kalman filters** to eliminate "pixel jitter" from YOLO detections.
+    
+* **Monocular Distance Estimation:** Distance is calculated based on the vertical offset from the horizon line using the formula:
+    $$d = \frac{f \cdot H}{\Delta y}$$
+* **TTC Logic:** Real-time calculation of **Time-to-Collision** to assess the overtaking window safety.
 
-## 📈 System Architecture
-1. **Perception Layer:** Raw video input -> YOLOv8 Detection -> Bounding Box Filtering.
-2. **Tracking Layer:** Temporal consistency (tracking IDs) to prevent flickering.
-3. **Geometry Layer:** Mapping 2D image coordinates to 3D world coordinates (Ground Plane).
-4. **Decision Layer:** Risk assessment based on distance, speed, and acceleration.
+## System Workflow
+1.  **Configuration:** `ADASLauncher` initializes camera parameters (FOV, Horizon) and YOLO settings.
+2.  **Perception:** YOLOv8 extracts bounding boxes, which are then filtered for automotive classes.
+3.  **Tracking & Metrics:** `ObjectTracker` maintains temporal consistency and calculates $V_{rel}$ and $V_{real}$ in $m/s$.
+4.  **Decision Engine:** The system evaluates the risk based on the classified direction of travel and the calculated distance gap.
 
-## 🛠 Installation & Usage
-(To be updated as we progress)
-```bash
-git clone [https://github.com/net0045/ADAS_overtaking_estimatation](https://github.com/net0045/ADAS_overtaking_estimatation)
-cd ADAS_overtaking_estimatation
-pip install -r requirements.txt
-python main.py
+
+## Future Roadmap: The "Sim-to-Real" Phase
+The current version relies on estimated parameters from 2D dashboard videos. To advance the project, the next steps include:
+* **CARLA Simulator Integration:** Transitioning to a high-fidelity simulation environment to obtain **ground-truth** physics data.
+* **Accuracy Benchmarking:** Comparing CV-based distance and speed estimates against the simulator's internal engine to measure and reduce error margins.
+* **Vehicle Dynamics:** Incorporating ego-vehicle CAN bus data (speed, steering angle) for more precise motion compensation.
+
+## Installation
+To run the system with GPU acceleration, ensure you have an NVIDIA GPU and follow these steps:
+
+1. **Install PyTorch (CUDA 11.8):**
+   ```bash
+   pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118)
+
+2. **Install remaining dependencies:**
+    ```bash
+   pip install -r requirements.txt
+
+3. **Launch the app:**
+    ```bash
+   python main.py

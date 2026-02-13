@@ -6,7 +6,7 @@ class ADASLauncher(ctk.CTk):
         super().__init__()
         self.start_callback = start_callback
         self.title("ADAS System Configuration")
-        self.geometry("500x600")
+        self.geometry("500x650")
         ctk.set_appearance_mode("dark")
 
         self.label_file = ctk.CTkLabel(self, text="Video Source", font=("Arial", 16, "bold"))
@@ -24,14 +24,23 @@ class ADASLauncher(ctk.CTk):
         self.slider_fov = self.create_slider("FOV", 40, 180, 140)
         self.slider_horizon = self.create_slider("Horizon Y", 0, 1080, 540)
 
-        self.label_yolo = ctk.CTkLabel(self, text="YOLO Settings", font=("Arial", 16, "bold"))
+        self.label_yolo = ctk.CTkLabel(self, text="YOLO Inference Settings", font=("Arial", 16, "bold"))
         self.label_yolo.pack(pady=(30, 5))
 
-        self.slider_imgsz = self.create_slider("Image Size", 320, 1280, 640)
+        self.label_sz = ctk.CTkLabel(self, text="Inference Resolution (imgsz):")
+        self.label_sz.pack()
+        self.seg_imgsz = ctk.CTkSegmentedButton(self, values=["320", "640", "1280"])
+        self.seg_imgsz.set("640") # Výchozí hodnota
+        self.seg_imgsz.pack(pady=10)
+
         self.slider_thresh = self.create_slider("Confidence Threshold", 0.1, 1.0, 0.45)
 
-        self.btn_start = ctk.CTkButton(self, text="LAUNCH ADAS", fg_color="green", hover_color="darkgreen", command=self.launch)
-        
+        self.btn_start = ctk.CTkButton(
+            self, text="LAUNCH ADAS ENGINE", 
+            fg_color="#2ecc71", hover_color="#27ae60", 
+            font=("Arial", 14, "bold"), height=40,
+            command=self.launch
+        )
         self.btn_start.pack(pady=40)
 
     def create_slider(self, text, from_, to, default):
@@ -50,16 +59,18 @@ class ADASLauncher(ctk.CTk):
     def launch(self):
         config = {
             "video_path": self.file_path.get(),
-            "fov": self.slider_fov.get(),
-            "horizon": self.slider_horizon.get(),
-            "imgsz": int(self.slider_imgsz.get()),
-            "thresh": self.slider_thresh.get()
+            "fov": float(self.slider_fov.get()),
+            "horizon": int(self.slider_horizon.get()), 
+            "imgsz": int(self.seg_imgsz.get()),        
+            "thresh": float(self.slider_thresh.get())
         }
 
         if config["video_path"] == "No file selected":
-            ctk.CTkLabel(self, text="Error: Please select a video file before launching.").pack(pady=10)
+            print("Error: Please select a video file.")
             return
         
+        self.withdraw()
+        self.quit()
         self.destroy() 
-        self.start_callback(config) 
-            
+        
+        self.start_callback(config)
