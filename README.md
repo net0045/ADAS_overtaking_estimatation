@@ -15,6 +15,28 @@ This is an **abstract experimental project** created as a personal deep-dive int
   </video>
 </div>
 
+<div align="center">
+  <h3>🎥 Showcase video 1</h3>
+  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video/showcase1.mp4" width="100%" controls muted autoplay loop>
+    Showcase video 1
+  </video>
+</div>
+
+<div align="center">
+  <h3>🎥 Showcase video 2</h3>
+  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video3/showcase3.mp4" width="100%" controls muted autoplay loop>
+    Showcase video 2
+  </video>
+</div>
+
+<div align="center">
+  <h3>🎥 Showcase video 3</h3>
+  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video3/showcase4.mp4" width="100%" controls muted autoplay loop>
+    Showcase video 3
+  </video>
+</div>
+
+
 ## Project Objectives
 * **Perspective Understanding:** Mapping 2D image coordinates to 3D world distances using monocular camera geometry.
 * **Signal Processing:** Implementing recursive estimation (Kalman filters) to mitigate noise in distance and velocity measurements.
