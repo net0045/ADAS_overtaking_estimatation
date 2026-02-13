@@ -9,7 +9,7 @@ This is an **abstract experimental project** created as a personal deep-dive int
 
 ## Showcase videos
 <div align="center">
-  <h3>🎥 Project Demonstration</h3>
+  <h3>🎥 Project Launcher</h3>
   <video src="https://github.com/user-attachments/assets/8a0c4eb5-ad54-4eda-a705-0e446379aa90" width="100%" controls muted autoplay loop>
     Configurator launcher
   </video>
@@ -17,22 +17,25 @@ This is an **abstract experimental project** created as a personal deep-dive int
 
 <div align="center">
   <h3>🎥 Showcase video 1</h3>
-    <video width="100%" controls muted autoplay loop>
-    <source src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video/showcase1.mp4" type="video/mp4">
-    </video>
+  <video src="https://github.com/user-attachments/assets/4432056f-827b-4237-9a7b-c6b3d50ab9ca" width="100%" controls muted autoplay loop>
+  </video>
 </div>
 
 <div align="center">
   <h3>🎥 Showcase video 2</h3>
-  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video3/showcase3.mp4" width="100%" controls muted autoplay loop>
-    Showcase video 2
+  <video src="https://github.com/user-attachments/assets/01bd6a4d-888a-4f08-9af0-8409b4928ba5" width="100%" controls muted autoplay loop>
   </video>
 </div>
 
 <div align="center">
   <h3>🎥 Showcase video 3</h3>
-  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video3/showcase4.mp4" width="100%" controls muted autoplay loop>
-    Showcase video 3
+  <video src="https://github.com/user-attachments/assets/6654b7a4-2a6d-4985-bd6c-491fc28e8a1d" width="100%" controls muted autoplay loop>
+  </video>
+</div>
+
+<div align="center">
+  <h3>🎥 Showcase video 4</h3>
+  <video src="https://github.com/user-attachments/assets/ed032101-b326-4fe2-829b-5f640b0dd739" width="100%" controls muted autoplay loop>
   </video>
 </div>
 
