@@ -17,9 +17,9 @@ This is an **abstract experimental project** created as a personal deep-dive int
 
 <div align="center">
   <h3>🎥 Showcase video 1</h3>
-  <video src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video/showcase1.mp4" width="100%" controls muted autoplay loop>
-    Showcase video 1
-  </video>
+    <video width="100%" controls muted autoplay loop>
+    <source src="https://github.com/net0045/ADAS_overtaking_estimatation/releases/download/video/showcase1.mp4" type="video/mp4">
+    </video>
 </div>
 
 <div align="center">
